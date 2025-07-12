@@ -2,12 +2,18 @@ const canvas = document.getElementById('tetris');
 const context = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
-const nextCanvas = document.getElementById('next');
-const nextContext = nextCanvas.getContext('2d');
+const nextCanvases = [
+    document.getElementById('next-1'),
+    document.getElementById('next-2'),
+    document.getElementById('next-3'),
+    document.getElementById('next-4'),
+    document.getElementById('next-5'),
+];
+const nextContexts = nextCanvases.map(canvas => canvas.getContext('2d'));
 
 const ROWS = 20;
 const COLS = 10;
-const BLOCK_SIZE = 20;
+let BLOCK_SIZE = 20;
 
 const COLORS = [
     null,
@@ -27,7 +33,7 @@ let score = 0;
 let level = 1;
 let dropCounter = 0;
 let dropInterval = 1000;
-let nextPiece = null;
+let nextPieces = [];
 let gameOver = false;
 let animationFrameId;
 
@@ -35,6 +41,8 @@ let player = {
     pos: { x: 0, y: 0 },
     matrix: null,
 };
+
+const PIECES = 'TJLOSZI';
 
 function createPiece(type) {
     if (type === 'T') {
@@ -54,14 +62,15 @@ function createPiece(type) {
     }
 }
 
-function playerReset() {
-    const pieces = 'TJLOSZI';
-    if (nextPiece === null) {
-        nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+function fillNextPieces() {
+    while (nextPieces.length < 5) {
+        nextPieces.push(createPiece(PIECES[PIECES.length * Math.random() | 0]));
     }
+}
 
-    player.matrix = nextPiece;
-    nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+function playerReset() {
+    player.matrix = nextPieces.shift();
+    fillNextPieces();
     player.pos.y = 0;
     player.pos.x = (COLS / 2 | 0) - (player.matrix[0].length / 2 | 0);
 
@@ -71,14 +80,14 @@ function playerReset() {
         cancelAnimationFrame(animationFrameId);
         return;
     }
-    drawNextPiece();
+    drawNextPieces();
 }
 
 function showGameOver() {
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
     context.fillStyle = 'white';
-    context.font = '24px sans-serif';
+    context.font = `${BLOCK_SIZE}px sans-serif`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText('Game Over', canvas.width / 2, canvas.height / 2);
@@ -201,6 +210,7 @@ function draw() {
 }
 
 function drawMatrix(context, matrix, offset, isGhost = false) {
+    const blockSize = context.canvas === canvas ? BLOCK_SIZE : BLOCK_SIZE / 2;
     matrix.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value !== 0) {
@@ -208,13 +218,13 @@ function drawMatrix(context, matrix, offset, isGhost = false) {
                     context.fillStyle = 'rgba(128, 128, 128, 0.5)';
                     context.strokeStyle = 'white';
                     context.lineWidth = 1;
-                    context.fillRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                    context.strokeRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    context.fillRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
+                    context.strokeRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
                 } else {
                     context.fillStyle = COLORS[value];
-                    context.fillRect((x + offset.x) * BLOCK_SIZE,
-                                     (y + offset.y) * BLOCK_SIZE,
-                                     BLOCK_SIZE, BLOCK_SIZE);
+                    context.fillRect((x + offset.x) * blockSize,
+                                     (y + offset.y) * blockSize,
+                                     blockSize, blockSize);
                 }
             }
         });
@@ -231,17 +241,43 @@ function drawGhostPiece() {
     drawMatrix(context, ghost.matrix, ghost.pos, true);
 }
 
-function drawNextPiece() {
-    nextContext.fillStyle = '#000';
-    nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-    const offsetX = (nextCanvas.width / BLOCK_SIZE - nextPiece[0].length) / 2;
-    const offsetY = (nextCanvas.height / BLOCK_SIZE - nextPiece.length) / 2;
-    drawMatrix(nextContext, nextPiece, {x: offsetX, y: offsetY});
+function drawNextPieces() {
+    nextCanvases.forEach((canvas, index) => {
+        const context = nextContexts[index];
+        const piece = nextPieces[index];
+        const nextBlockSize = BLOCK_SIZE / 2;
+
+        canvas.width = nextBlockSize * 4;
+        canvas.height = nextBlockSize * 4;
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (piece) {
+            const offsetX = (canvas.width / nextBlockSize - piece[0].length) / 2;
+            const offsetY = (canvas.height / nextBlockSize - piece.length) / 2;
+            drawMatrix(context, piece, {x: offsetX, y: offsetY});
+        }
+
+        if (index === 0) {
+            canvas.classList.add('active');
+        } else {
+            canvas.classList.remove('active');
+        }
+    });
 }
 
 function updateScore() {
     scoreElement.innerText = score;
     levelElement.innerText = level;
+}
+
+function resize() {
+    const screenHeight = window.innerHeight * 0.8;
+    BLOCK_SIZE = Math.floor(screenHeight / ROWS);
+    canvas.width = COLS * BLOCK_SIZE;
+    canvas.height = ROWS * BLOCK_SIZE;
+    draw();
+    drawNextPieces();
 }
 
 let lastTime = 0;
@@ -278,6 +314,10 @@ document.addEventListener('keydown', event => {
     }
 });
 
+window.addEventListener('resize', resize);
+
+fillNextPieces();
 playerReset();
 updateScore();
+resize();
 update();

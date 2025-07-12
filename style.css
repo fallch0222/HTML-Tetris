@@ -3,7 +3,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 90vh;
+    height: 100vh;
+    margin: 0;
     background-color: #f0f0f0;
     font-family: sans-serif;
 }
@@ -21,6 +22,28 @@ canvas {
     background-color: #ddd;
 }
 
+#next-container {
+    display: flex;
+    flex-direction: column;
+}
+
+#next-container canvas {
+    border: 1px solid #000;
+    background-color: #ddd;
+    margin-bottom: 10px;
+}
+
+#next-container canvas.active {
+
+    border: 4px solid #f00;
+
+}
+
 #info {
     margin-left: 20px;
+}
+
+#next {
+    border: 1px solid #000;
+    background-color: #ddd;
 }
