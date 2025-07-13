@@ -27,7 +27,7 @@ const COLORS = [
 ];
 
 const blocklandsfx = new Audio('sound effect/pop-39222.mp3'); //DO NOT DELETE THIS SOUND EFFECT FUNCTION
-
+const levelupsfx = new Audio('sound effect/levelup.mp3');
 let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 let score = 0;
 let level = 1;
@@ -191,6 +191,7 @@ function sweep() {
         score += rowCount * 10;
         rowCount *= 2;
         if (score >= level * 100) {
+            levelupsfx.play();
             level++;
             dropInterval -= 50;
             if (dropInterval < 100) {
